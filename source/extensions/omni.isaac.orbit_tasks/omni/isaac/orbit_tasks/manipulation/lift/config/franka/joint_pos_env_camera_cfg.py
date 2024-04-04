@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import omni.isaac.orbit.sim as sim_utils
+
 from omni.isaac.orbit.assets import RigidObjectCfg
 from omni.isaac.orbit.sensors import FrameTransformerCfg, CameraCfg
 from omni.isaac.orbit.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
@@ -22,7 +24,7 @@ from omni.isaac.orbit_assets.franka import FRANKA_PANDA_CFG  # isort: skip
 
 
 @configclass
-class FrankaCubeLiftEnvCfg(LiftEnvCfg):
+class FrankaCubeLiftCameraEnvCfg(LiftEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -95,7 +97,7 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
 
 
 @configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+class FrankaCubeLiftCameraEnvCfg_PLAY(FrankaCubeLiftCameraEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
