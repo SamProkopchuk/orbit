@@ -34,7 +34,7 @@ class FrankaCubeLiftCameraEnvCfg(LiftEnvCfg):
 
         # Add a camera to the robot
         self.scene.camera = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/base/front_cam",
+            prim_path="{ENV_REGEX_NS}/Robot/front_cam",
             update_period=0.1,
             height=480,
             width=640,
