@@ -39,6 +39,8 @@ from skrl.utils.model_instantiators.torch import Shape  # noqa: F401
 
 from omni.isaac.orbit.envs import RLTaskEnv
 
+from PIL import Image
+
 """
 Configuration Parser.
 """
@@ -187,12 +189,16 @@ class SkrlSequentialLogTrainer(Trainer):
         states, infos = self.env.reset()
         # training loop
         for timestep in tqdm.tqdm(range(self.timesteps), disable=self.disable_progressbar):
-            print(f"timestep: {timestep}")
             # pre-interaction
             self.agents.pre_interaction(timestep=timestep, timesteps=self.timesteps)
             # compute actions
             with torch.no_grad():
                 actions = self.agents.act(states, timestep=timestep, timesteps=self.timesteps)[0]
+
+            img_arr = self.env.scene["camera"].data.output["rgb"].detach().cpu().numpy()
+            print(img_arr.shape)
+            # img.save(f"temp/camera_{timestep}.png", **img.info)
+
             # step the environments
             next_states, rewards, terminated, truncated, infos = self.env.step(actions)
             # note: here we do not call render scene since it is done in the env.step() method

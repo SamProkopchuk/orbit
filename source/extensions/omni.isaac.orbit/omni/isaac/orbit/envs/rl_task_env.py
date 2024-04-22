@@ -261,7 +261,6 @@ class RLTaskEnv(BaseEnv, gym.Env):
             )
 
     def close(self):
-        raise RuntimeError("RLTaskEnv.close() was called.")
         if not self._is_closed:
             # destructor is order-sensitive
             del self.command_manager
