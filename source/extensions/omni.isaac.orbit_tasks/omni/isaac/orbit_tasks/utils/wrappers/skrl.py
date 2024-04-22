@@ -195,9 +195,10 @@ class SkrlSequentialLogTrainer(Trainer):
             with torch.no_grad():
                 actions = self.agents.act(states, timestep=timestep, timesteps=self.timesteps)[0]
 
-            img_arr = self.env.scene["camera"].data.output["rgb"].detach().cpu().numpy()
+            img_arr = self.env.scene["camera"].data.output["rgb"].detach().cpu().numpy()[0]
             print(img_arr.shape)
-            # img.save(f"temp/camera_{timestep}.png", **img.info)
+            img = Image.fromarray(img_arr)
+            img.save(f"temp/camera_{timestep}.png", **img.info)
 
             # step the environments
             next_states, rewards, terminated, truncated, infos = self.env.step(actions)
