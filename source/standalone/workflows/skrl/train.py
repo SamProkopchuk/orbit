@@ -31,6 +31,8 @@ parser.add_argument(
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+# added
+parser.add_argument("--usewandb", action="store_true", default=False, help="Use wandb logging.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -159,6 +161,31 @@ def main():
     agent_cfg["state_preprocessor_kwargs"].update({"size": env.observation_space, "device": env.device})
     agent_cfg["value_preprocessor_kwargs"].update({"size": 1, "device": env.device})
 
+    import wandb
+    import time
+
+    def init_wandb(args):
+        # if args.wandb_id is not None:
+        #     print(f"Resuming wandb run with id={args.wandb_id}.")
+        #     run = wandb.init(id=args.wandb_id, resume=True)
+
+        print(f'wandb enabled: {args.usewandb}')
+        if args.usewandb:
+            # initialize wandb
+            task = args.task
+            task_rename = {
+                "Isaac-Lift-Cube-Camera-Franka-v0": "visual",
+                "Isaac-Lift-Cube-Franka-v0": "state",
+            }
+            task = task_rename[task] if task in task_rename else task
+            wandb.init(
+                project="orbit",
+                # config=dict(args),
+                config=args,
+                name=f"{task}-n{args.num_envs}-s{args.seed}",
+            )
+    init_wandb(args_cli)
+
     agent = PPO(
         models=models,
         memory=memory,
@@ -174,7 +201,12 @@ def main():
     trainer = SkrlSequentialLogTrainer(cfg=trainer_cfg, env=env, agents=agent)
 
     # train the agent
-    trainer.train()
+    time_start = time.time()
+    trainer.train(usewandb=args_cli.usewandb)
+    runtime = time.time() - time_start
+
+    if wandb.run is not None:
+        wandb.run.summary["runtime"] = runtime
 
     # close the simulator
     env.close()

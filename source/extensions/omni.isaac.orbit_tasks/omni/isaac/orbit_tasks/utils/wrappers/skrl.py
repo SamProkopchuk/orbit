@@ -28,6 +28,7 @@ from __future__ import annotations
 import copy
 import torch
 import tqdm
+import wandb
 
 from skrl.agents.torch import Agent
 from skrl.envs.wrappers.torch import Wrapper, wrap_env
@@ -168,7 +169,7 @@ class SkrlSequentialLogTrainer(Trainer):
         else:
             self.agents.init(trainer_cfg=self.cfg)
 
-    def train(self):
+    def train(self, usewandb=False):
         """Train the agents sequentially.
 
         This method executes the training loop for the agents. It performs the following steps:
@@ -220,6 +221,17 @@ class SkrlSequentialLogTrainer(Trainer):
                 for k, v in infos["episode"].items():
                     if isinstance(v, torch.Tensor) and v.numel() == 1:
                         self.agents.track_data(f"EpisodeInfo / {k}", v.item())
+            # log to wandb
+            if usewandb:
+                for key in infos:
+                    for k, v in infos[key].items():
+                        if isinstance(v, torch.Tensor) and v.numel() == 1:
+                            wandb.log({f"{k}": v.item()})
+                        else:
+                            try:
+                                wandb.log({f"{k}": v})
+                            except:
+                                pass
             # post-interaction
             self.agents.post_interaction(timestep=timestep, timesteps=self.timesteps)
             # reset the environments
