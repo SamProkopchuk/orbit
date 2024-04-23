@@ -82,7 +82,8 @@ plt.plot(x, y_train, label="state-based train", linestyle="--", color=colors[1])
 plt.plot(x, y_total, label="state-based total", linestyle="-", color=colors[1])
 
 plt.xticks(x)
-plt.xlim(left=0, right=129)
+plt.xlim(left=0, right=33)
+plt.ylim(bottom=0)
 
 # plt.yscale("log")
 # plt.xscale("log")
