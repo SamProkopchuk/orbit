@@ -4,12 +4,13 @@ import wandb
 import os
 
 parent_dir = os.path.dirname(os.path.abspath(__file__))
-file_dir = os.path.join(parent_dir, "time_state_vs_visual_sim.txt")
+file_dir = os.path.join(parent_dir, "state_vs_visual_sim.txt")
 
 # num_envs_lst = [400, 500, 600, 700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 3000, 4000, 5000]
 # num_envs_lst = [1,2,4,8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576]
-num_envs_lst = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-seeds = [0, 1, 2, 3, 4]
+# num_envs_lst = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+num_envs_lst = [1024, 2048, 4096, 8192]
+seeds = [0, 1, 2]
 
 for seed in seeds:
     for num_envs in num_envs_lst:
@@ -48,5 +49,5 @@ for seed in seeds:
 
             # Save the time taken
             with open(file_dir, "a") as f:
-                # num_envs, seed, camera, time, full command
+                # num_envs, seed, camera, time, command
                 f.writelines([f"{num_envs}, {seed}, {camera}, {runtime}, {command}\n"])

@@ -192,10 +192,9 @@ def main():
             wandb.run.summary["seed"] = args.seed
             wandb.run.summary["task"] = args.task
             wandb.run.summary["visual"] = visual
-
-            # define_metric
-            wandb.define_metric("system/gpu.0.memoryAllocatedBytes", summary="max")
-            wandb.define_metric("system/proc.memory.rssMB", summary="max")
+            # automatically saves highest values to summary
+            # wandb.define_metric("system.gpu.0.memoryAllocatedBytes", summary="max")
+            # wandb.define_metric("system.proc.memory.rssMB", summary="max")
             
     init_wandb(args_cli)
 
@@ -239,8 +238,10 @@ def main():
         # system/gpu.0.memoryAllocatedBytes
         for key in keys:
             if key in system_metrics:
-                run.summary[f"max_{key}"] = system_metrics[key].max()
-        run.summary.update()
+                # Due to a bug added summary values won't be plotable
+                # run.summary[f"max_{key}"] = system_metrics[key].max()
+                wandb.log({f"max_{key}": system_metrics[key].max()})
+        # run.summary.update()
 
 if __name__ == "__main__":
     # run the main function

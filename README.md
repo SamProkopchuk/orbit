@@ -34,5 +34,5 @@ python source/standalone/tutorials/00_sim/create_empty.py
 
 ```bash
 mamba activate orbit
-python scripts/state_vs_visual.py
+python scripts/state_vs_visual_sim/state_vs_visual_sim.py
 ```
