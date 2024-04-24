@@ -11,9 +11,9 @@ file_dir = os.path.join(parent_dir, "time_state_vs_visual_sim.txt")
 num_envs_lst = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 seeds = [0, 1, 2, 3, 4]
 
-for num_envs in num_envs_lst:
-    for camera in ["state", "visual"]:
-        for seed in seeds:
+for seed in seeds:
+    for num_envs in num_envs_lst:
+        for camera in ["state", "visual"]:
 
             print()
             print('-'* 80)

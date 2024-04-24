@@ -26,6 +26,7 @@ python source/standalone/tutorials/00_sim/create_empty.py
 
 ### Run a standard task
 ```bash
+# optionally add --usewandb, --timesteps 100, ...
 ./orbit.sh -p source/standalone/workflows/skrl/train.py --task Isaac-Lift-Cube-Franka-v0 --headless --num_envs 2 --seed 0
 ```
 

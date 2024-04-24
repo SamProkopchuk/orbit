@@ -32,6 +32,7 @@ parser.add_argument("--num_envs", type=int, default=None, help="Number of enviro
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 # added
+parser.add_argument("--timesteps", type=int, default=None, help="Maximum number of timesteps for trainer.")
 parser.add_argument("--usewandb", action="store_true", default=False, help="Use wandb logging.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -178,12 +179,24 @@ def main():
                 "Isaac-Lift-Cube-Franka-v0": "state",
             }
             task = task_rename[task] if task in task_rename else task
-            wandb.init(
+            run = wandb.init(
                 project="orbit",
                 # config=dict(args),
                 config=args,
                 name=f"{task}-n{args.num_envs}-s{args.seed}",
             )
+            visual = task == 'visual'
+            wandb.config.update({'visual': visual})
+            # also saving to summary makes it easier to plot in wandb
+            wandb.run.summary["num_envs"] = args.num_envs
+            wandb.run.summary["seed"] = args.seed
+            wandb.run.summary["task"] = args.task
+            wandb.run.summary["visual"] = visual
+
+            # define_metric
+            wandb.define_metric("system/gpu.0.memoryAllocatedBytes", summary="max")
+            wandb.define_metric("system/proc.memory.rssMB", summary="max")
+            
     init_wandb(args_cli)
 
     agent = PPO(
@@ -198,6 +211,8 @@ def main():
     # configure and instantiate a custom RL trainer for logging episode events
     # https://skrl.readthedocs.io/en/latest/modules/skrl.trainers.base_class.html
     trainer_cfg = experiment_cfg["trainer"]
+    if args_cli.timesteps is not None:
+        trainer_cfg["timesteps"] = args_cli.timesteps
     trainer = SkrlSequentialLogTrainer(cfg=trainer_cfg, env=env, agents=agent)
 
     # train the agent
@@ -205,12 +220,27 @@ def main():
     trainer.train(usewandb=args_cli.usewandb)
     runtime = time.time() - time_start
 
+    runid = None
     if wandb.run is not None:
+        runid = wandb.run.id
         wandb.run.summary["runtime"] = runtime
+        wandb.finish()
 
     # close the simulator
     env.close()
 
+    # add the max logged system/memory metrics to the summary
+    if runid is not None:
+        api = wandb.Api()
+        # run = api.run("username/project/run_id")
+        run = api.run(f"orbit/{runid}")
+        keys = ["system.gpu.0.memoryAllocatedBytes", "system.proc.memory.rssMB"]
+        system_metrics = run.history(stream="system") # events, systemMetrics
+        # system/gpu.0.memoryAllocatedBytes
+        for key in keys:
+            if key in system_metrics:
+                run.summary[f"max_{key}"] = system_metrics[key].max()
+        run.summary.update()
 
 if __name__ == "__main__":
     # run the main function
