@@ -34,6 +34,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 # added
 parser.add_argument("--timesteps", type=int, default=None, help="Maximum number of timesteps for trainer.")
 parser.add_argument("--usewandb", action="store_true", default=False, help="Use wandb logging.")
+parser.add_argument("--render_mode", type=str, default=None, help="Render mode for gym env. Usually `rgb_array` or `None`.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -62,11 +63,50 @@ from omni.isaac.orbit_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.skrl import SkrlSequentialLogTrainer, SkrlVecEnvWrapper, process_skrl_cfg
 
 
+import wandb
+import time
+
+def init_wandb(args):
+    # if args.wandb_id is not None:
+    #     print(f"Resuming wandb run with id={args.wandb_id}.")
+    #     run = wandb.init(id=args.wandb_id, resume=True)
+
+    print(f'wandb enabled: {args.usewandb}')
+    if args.usewandb:
+        # initialize wandb
+        task = args.task
+        task_rename = {
+            "Isaac-Lift-Cube-Camera-Franka-v0": "visual",
+            "Isaac-Lift-Cube-Franka-v0": "state",
+        }
+        task = task_rename[task] if task in task_rename else task
+        run = wandb.init(
+            project="orbit",
+            # config=dict(args),
+            config=args,
+            name=f"{task}-n{args.num_envs}-s{args.seed}",
+        )
+        visual = task == 'visual'
+        wandb.config.update({'visual': visual})
+        # also saving to summary makes it easier to plot in wandb
+        wandb.run.summary["num_envs"] = args.num_envs
+        wandb.run.summary["seed"] = args.seed
+        wandb.run.summary["task"] = args.task
+        wandb.run.summary["visual"] = visual
+        wandb.run.summary["timesteps"] = args.timesteps
+        # automatically saves highest values to summary
+        # wandb.define_metric("system.gpu.0.memoryAllocatedBytes", summary="max")
+        # wandb.define_metric("system.proc.memory.rssMB", summary="max")
+
 def main():
     """Train with skrl agent."""
+            
+    init_wandb(args_cli)
+    start_setup_time = time.time()
+
     # read the seed from command line
     args_cli_seed = args_cli.seed
-
+    
     # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
@@ -76,7 +116,7 @@ def main():
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "skrl", experiment_cfg["agent"]["experiment"]["directory"])
     log_root_path = os.path.abspath(log_root_path)
-    print(f"[INFO] Logging experiment in directory: {log_root_path}")
+    print(f"[INFO]: Logging experiment in directory: {log_root_path}")
     # specify directory for logging runs: {time-stamp}_{run_name}
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if experiment_cfg["agent"]["experiment"]["experiment_name"]:
@@ -94,7 +134,11 @@ def main():
     dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), experiment_cfg)
 
     # create isaac environment
-    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    render_mode = "rgb_array" if args_cli.video else None
+    if args_cli.render_mode is not None:
+        render_mode = args_cli.render_mode 
+    print(f"[INFO]: Using render mode: {render_mode}")
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode=render_mode)
     # TODO(@Sam): See if need to pass rgb_array to added camera in the scene.
     # wrap for video recording
     if args_cli.video:
@@ -104,7 +148,7 @@ def main():
             "video_length": args_cli.video_length,
             "disable_logger": True,
         }
-        print("[INFO] Recording videos during training.")
+        print("[INFO]: Recording videos during training.")
         print_dict(video_kwargs, nesting=4)
         env = gym.wrappers.RecordVideo(env, **video_kwargs)
     # wrap around environment for skrl
@@ -162,42 +206,6 @@ def main():
     agent_cfg["state_preprocessor_kwargs"].update({"size": env.observation_space, "device": env.device})
     agent_cfg["value_preprocessor_kwargs"].update({"size": 1, "device": env.device})
 
-    import wandb
-    import time
-
-    def init_wandb(args):
-        # if args.wandb_id is not None:
-        #     print(f"Resuming wandb run with id={args.wandb_id}.")
-        #     run = wandb.init(id=args.wandb_id, resume=True)
-
-        print(f'wandb enabled: {args.usewandb}')
-        if args.usewandb:
-            # initialize wandb
-            task = args.task
-            task_rename = {
-                "Isaac-Lift-Cube-Camera-Franka-v0": "visual",
-                "Isaac-Lift-Cube-Franka-v0": "state",
-            }
-            task = task_rename[task] if task in task_rename else task
-            run = wandb.init(
-                project="orbit",
-                # config=dict(args),
-                config=args,
-                name=f"{task}-n{args.num_envs}-s{args.seed}",
-            )
-            visual = task == 'visual'
-            wandb.config.update({'visual': visual})
-            # also saving to summary makes it easier to plot in wandb
-            wandb.run.summary["num_envs"] = args.num_envs
-            wandb.run.summary["seed"] = args.seed
-            wandb.run.summary["task"] = args.task
-            wandb.run.summary["visual"] = visual
-            # automatically saves highest values to summary
-            # wandb.define_metric("system.gpu.0.memoryAllocatedBytes", summary="max")
-            # wandb.define_metric("system.proc.memory.rssMB", summary="max")
-            
-    init_wandb(args_cli)
-
     agent = PPO(
         models=models,
         memory=memory,
@@ -215,18 +223,22 @@ def main():
     trainer = SkrlSequentialLogTrainer(cfg=trainer_cfg, env=env, agents=agent)
 
     # train the agent
-    time_start = time.time()
+    start_train_time = time.time()
     trainer.train(usewandb=args_cli.usewandb)
-    runtime = time.time() - time_start
+    traintime = time.time() - start_train_time
+    print(f"Training time: {traintime} seconds.")
+
+    # close the simulator
+    env.close()
 
     runid = None
     if wandb.run is not None:
         runid = wandb.run.id
-        wandb.run.summary["runtime"] = runtime
+        wandb.run.summary["traintime"] = traintime
+        wandb.run.summary["totaltime"] = time.time() - start_setup_time
+        # since summary values can't be plotted in wandb (bug), add to config
+        wandb.config.update({"traintime": traintime, "totaltime": time.time() - start_setup_time})
         wandb.finish()
-
-    # close the simulator
-    env.close()
 
     # add the max logged system/memory metrics to the summary
     if runid is not None:
@@ -235,13 +247,13 @@ def main():
         run = api.run(f"orbit/{runid}")
         keys = ["system.gpu.0.memoryAllocatedBytes", "system.proc.memory.rssMB"]
         system_metrics = run.history(stream="system") # events, systemMetrics
-        # system/gpu.0.memoryAllocatedBytes
         for key in keys:
             if key in system_metrics:
                 # Due to a bug added summary values won't be plotable
-                # run.summary[f"max_{key}"] = system_metrics[key].max()
-                wandb.log({f"max_{key}": system_metrics[key].max()})
-        # run.summary.update()
+                run.summary[f"max_{key}"] = system_metrics[key].max()
+                run.config.update({f"max_{key}": system_metrics[key].max()})
+                # wandb.log({f"max_{key}": system_metrics[key].max()})
+        run.summary.update()
 
 if __name__ == "__main__":
     # run the main function
