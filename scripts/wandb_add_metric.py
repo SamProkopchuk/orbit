@@ -65,7 +65,8 @@ for run in tqdm.tqdm(runs):
         # wandb.log({f"total_{metric}": np.mean(values)})) 
         # wandb.log({f"total_{metric}_std": np.std(values)}))  
 
-        # wandb: WARNING Step only supports monotonically increasing values, use define_metric to set a custom x axis. For details see: https://wandb.me/define-metric
+        # wandb: WARNING Step only supports monotonically increasing values, use define_metric to set a custom x axis. 
+        # For details see: https://wandb.me/define-metric
         # wandb: WARNING (User provided step: 0 is less than current step: 2. Dropping entry
         print(f"max_{metric}: {np.max(values)}")
         wandb.log({f"max_{metric}": np.max(values)}, step=step)

@@ -196,6 +196,7 @@ class SkrlSequentialLogTrainer(Trainer):
             with torch.no_grad():
                 actions = self.agents.act(states, timestep=timestep, timesteps=self.timesteps)[0]
 
+            # if we want to use the image from the camera
             # img_arr = self.env.scene["camera"].data.output["rgb"].detach().cpu().numpy()[0]
             # img = Image.fromarray(img_arr)
             # img.save(f"temp/camera_{timestep}.png", **img.info)

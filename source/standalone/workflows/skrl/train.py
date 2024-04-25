@@ -222,6 +222,9 @@ def main():
         trainer_cfg["timesteps"] = args_cli.timesteps
     trainer = SkrlSequentialLogTrainer(cfg=trainer_cfg, env=env, agents=agent)
 
+    print('[INFO]: Sensors in the scene:', env.scene.sensors)
+    print('[INFO]: Starting training.')
+
     # train the agent
     start_train_time = time.time()
     trainer.train(usewandb=args_cli.usewandb)
