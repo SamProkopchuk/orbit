@@ -27,6 +27,7 @@ from .simulation_cfg import SimulationCfg
 from .spawners import DomeLightCfg, GroundPlaneCfg
 from .utils import bind_physics_material
 
+print(f'\nomni.isaac.core.simulation_context file is at: {omni.isaac.core.simulation_context.__file__}')
 
 class SimulationContext(_SimulationContext):
     """A class to control simulation-related events such as physics stepping and rendering.
@@ -367,6 +368,7 @@ class SimulationContext(_SimulationContext):
 
     def reset(self, soft: bool = False):
         super().reset(soft=soft)
+        print(f'{self.__class__.__name__} super().reset(soft=soft) finished')
         # perform additional rendering steps to warm up replicator buffers
         # this is only needed for the first time we set the simulation
         if not soft:

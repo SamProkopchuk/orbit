@@ -12,13 +12,24 @@ a more user-friendly way.
 
 from __future__ import annotations
 
-"""Launch Isaac Sim Simulator first."""
-
-
 import argparse
+
+import gymnasium as gym
+import os
+from datetime import datetime
+
+from skrl.agents.torch.ppo import PPO, PPO_DEFAULT_CONFIG
+from skrl.memories.torch import RandomMemory
+from skrl.utils import set_seed
+from skrl.utils.model_instantiators.torch import deterministic_model, gaussian_model, shared_model
+
+# import line_profiler 
+import wandb
+import time
 
 from omni.isaac.orbit.app import AppLauncher
 
+"""Launch Isaac Sim Simulator first."""
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with skrl.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
@@ -41,30 +52,18 @@ AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
 # launch omniverse app
+print("Launching Isaac Sim Simulator.")
 app_launcher = AppLauncher(args_cli)
+print("Launched Isaac Sim Simulator.")
 simulation_app = app_launcher.app
 
-"""Rest everything follows."""
-
-import gymnasium as gym
-import os
-from datetime import datetime
-
-from skrl.agents.torch.ppo import PPO, PPO_DEFAULT_CONFIG
-from skrl.memories.torch import RandomMemory
-from skrl.utils import set_seed
-from skrl.utils.model_instantiators.torch import deterministic_model, gaussian_model, shared_model
-
+"""We can only import these after Omniverse / Isaac Sim Simulator was launched."""
 from omni.isaac.orbit.utils.dict import print_dict
 from omni.isaac.orbit.utils.io import dump_pickle, dump_yaml
 
 import omni.isaac.orbit_tasks  # noqa: F401
 from omni.isaac.orbit_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.skrl import SkrlSequentialLogTrainer, SkrlVecEnvWrapper, process_skrl_cfg
-
-
-import wandb
-import time
 
 def init_wandb(args):
     # if args.wandb_id is not None:
@@ -111,6 +110,7 @@ def main():
     env_cfg = parse_env_cfg(
         args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+    print(f'Using GPU: {not args_cli.cpu}')
     experiment_cfg = load_cfg_from_registry(args_cli.task, "skrl_cfg_entry_point")
 
     # specify directory for logging experiments
@@ -137,8 +137,9 @@ def main():
     render_mode = "rgb_array" if args_cli.video else None
     if args_cli.render_mode is not None:
         render_mode = args_cli.render_mode 
-    print(f"[INFO]: Using render mode: {render_mode}")
+    print(f"[INFO]: Using render mode: {render_mode}", flush=True)
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=render_mode)
+
     # TODO(@Sam): See if need to pass rgb_array to added camera in the scene.
     # wrap for video recording
     if args_cli.video:

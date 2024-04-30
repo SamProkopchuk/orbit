@@ -135,6 +135,7 @@ class BaseEnv:
             print("[INFO]: Starting the simulation. This may take a few seconds. Please wait...")
             with Timer("[INFO]: Time taken for simulation start"):
                 self.sim.reset()
+            print('[INFO]: self.sim.reset() finished.', flush=True)
             # add timeline event to load managers
             self.load_managers()
 
