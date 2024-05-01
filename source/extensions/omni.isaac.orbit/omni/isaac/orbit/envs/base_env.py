@@ -116,6 +116,7 @@ class BaseEnv:
 
         # generate scene
         with Timer("[INFO]: Time taken for scene creation"):
+            print(f'[INFO]: {self.__class__.__name__} Creating scene...')
             self.scene = InteractiveScene(self.cfg.scene)
         print("[INFO]: Scene manager: ", self.scene)
 

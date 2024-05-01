@@ -201,6 +201,12 @@ class SkrlSequentialLogTrainer(Trainer):
             # img = Image.fromarray(img_arr)
             # img.save(f"temp/camera_{timestep}.png", **img.info)
 
+            # print(f'actions: {actions.shape}')
+            # print(f'states: {states.shape}')
+            # cam_obs = self.env.scene["camera"]
+            # cam_obs = self.env.scene["camera"].data.output["rgb"].detach().cpu().numpy()[0]
+            # print(f'cam_obs: {cam_obs.shape}')
+
             # step the environments
             next_states, rewards, terminated, truncated, infos = self.env.step(actions)
             # note: here we do not call render scene since it is done in the env.step() method

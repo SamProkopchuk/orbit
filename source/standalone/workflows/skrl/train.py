@@ -46,6 +46,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument("--timesteps", type=int, default=None, help="Maximum number of timesteps for trainer.")
 parser.add_argument("--usewandb", action="store_true", default=False, help="Use wandb logging.")
 parser.add_argument("--render_mode", type=str, default=None, help="Render mode for gym env. Usually `rgb_array` or `None`.")
+parser.add_argument("--visualagent", action="store_true", default=False, help="RL agent should use pixel values or states as input.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -99,6 +100,12 @@ def init_wandb(args):
 
 def main():
     """Train with skrl agent."""
+
+    """ Logging """
+    if args_cli.visualagent:
+        print("[INFO]: Training with visual agent.")
+        assert 'Camera' in args_cli.task
+        # samples, width * height * channels
             
     init_wandb(args_cli)
     start_setup_time = time.time()
@@ -133,6 +140,8 @@ def main():
     dump_pickle(os.path.join(log_dir, "params", "env.pkl"), env_cfg)
     dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), experiment_cfg)
 
+    """ Create environment """
+
     # create isaac environment
     render_mode = "rgb_array" if args_cli.video else None
     if args_cli.render_mode is not None:
@@ -161,37 +170,59 @@ def main():
     # set seed for the experiment (override from command line)
     set_seed(args_cli_seed if args_cli_seed is not None else experiment_cfg["seed"])
 
-    # instantiate models using skrl model instantiator utility
-    # https://skrl.readthedocs.io/en/latest/modules/skrl.utils.model_instantiators.html
-    models = {}
-    # non-shared models
-    if experiment_cfg["models"]["separate"]:
-        models["policy"] = gaussian_model(
+    """ Create agent """
+
+    if args_cli.visualagent:
+        # https://github.com/Toni-SM/skrl/blob/main/docs/source/examples/isaacsim/torch_isaacsim_jetbot_ppo.py
+        # from orbit.source.standalone.workflows.skrl.visual_agent import Policy, Value
+        from source.standalone.workflows.skrl.visual_agent import Policy, Value
+        models = {}
+        models["policy"] = Policy(
             observation_space=env.observation_space,
             action_space=env.action_space,
             device=env.device,
-            **process_skrl_cfg(experiment_cfg["models"]["policy"]),
+            # **process_skrl_cfg(experiment_cfg["models"]["policy"]),
         )
-        models["value"] = deterministic_model(
+        models["value"] = Value(
             observation_space=env.observation_space,
             action_space=env.action_space,
             device=env.device,
-            **process_skrl_cfg(experiment_cfg["models"]["value"]),
+            # **process_skrl_cfg(experiment_cfg["models"]["value"]),
         )
-    # shared models
+
     else:
-        models["policy"] = shared_model(
-            observation_space=env.observation_space,
-            action_space=env.action_space,
-            device=env.device,
-            structure=None,
-            roles=["policy", "value"],
-            parameters=[
-                process_skrl_cfg(experiment_cfg["models"]["policy"]),
-                process_skrl_cfg(experiment_cfg["models"]["value"]),
-            ],
-        )
-        models["value"] = models["policy"]
+        # instantiate models using skrl model instantiator utility
+        # https://skrl.readthedocs.io/en/latest/modules/skrl.utils.model_instantiators.html
+        # this will use a simple feedforward neural network with 2 hidden layers
+        models = {}
+        # non-shared models
+        if experiment_cfg["models"]["separate"]:
+            models["policy"] = gaussian_model(
+                observation_space=env.observation_space,
+                action_space=env.action_space,
+                device=env.device,
+                **process_skrl_cfg(experiment_cfg["models"]["policy"]),
+            )
+            models["value"] = deterministic_model(
+                observation_space=env.observation_space,
+                action_space=env.action_space,
+                device=env.device,
+                **process_skrl_cfg(experiment_cfg["models"]["value"]),
+            )
+        # shared models
+        else:
+            models["policy"] = shared_model(
+                observation_space=env.observation_space,
+                action_space=env.action_space,
+                device=env.device,
+                structure=None,
+                roles=["policy", "value"],
+                parameters=[
+                    process_skrl_cfg(experiment_cfg["models"]["policy"]),
+                    process_skrl_cfg(experiment_cfg["models"]["value"]),
+                ],
+            )
+            models["value"] = models["policy"]
 
     # instantiate a RandomMemory as rollout buffer (any memory can be used for this)
     # https://skrl.readthedocs.io/en/latest/modules/skrl.memories.random.html
@@ -223,6 +254,8 @@ def main():
         trainer_cfg["timesteps"] = args_cli.timesteps
     trainer = SkrlSequentialLogTrainer(cfg=trainer_cfg, env=env, agents=agent)
 
+    """ Train the agent """
+
     print('[INFO]: Sensors in the scene:', env.scene.sensors)
     print('[INFO]: Starting training.')
 
@@ -234,6 +267,8 @@ def main():
 
     # close the simulator
     env.close()
+
+    """ Logging """
 
     runid = None
     if wandb.run is not None:

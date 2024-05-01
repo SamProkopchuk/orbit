@@ -31,6 +31,13 @@ python source/standalone/tutorials/00_sim/create_empty.py
 ./orbit.sh -p source/standalone/workflows/skrl/train.py --task Isaac-Lift-Cube-Camera-Franka-v0 --headless --num_envs 2 --seed 0
 ```
 
+```bash
+./orbit.sh -p source/standalone/tutorials/04_sensors/add_sensors_on_robot.py --num_envs 2
+```
+
+actions: torch.Size([num_envs, 8])
+states: torch.Size([num_envs, 36])
+
 ### Orbit visual vs state-based profiling
 
 ```bash

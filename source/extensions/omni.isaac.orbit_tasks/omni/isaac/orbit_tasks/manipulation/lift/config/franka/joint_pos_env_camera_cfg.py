@@ -85,7 +85,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     camera = CameraCfg(
         # prim_path="{ENV_REGEX_NS}/Robot/base/front_cam",
         prim_path="{ENV_REGEX_NS}/Table/front_cam",
-        update_period=0.1,
+        update_period=0.1, # 10Hz
         height=480,
         width=640,
         data_types=["rgb", "distance_to_image_plane"],
@@ -95,6 +95,33 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         offset=CameraCfg.OffsetCfg(pos=(0, 0, 3), rot=(0, -0.5, 0, 0), convention="ros"),
     )
 
+    # To attach an RGB-D camera sensor to the head of the robot, we specify an offset relative to the base frame of the robot. 
+    # The offset is specified as a translation and rotation relative to the base frame
+    # {ENV_REGEX_NS} is the environment namespace, "Robot" is the name of the robot, 
+    # "base" is the name of the prim to which the camera is attached, and "front_cam" is the name of the prim associated with the camera sensor.
+
+    # "{ENV_REGEX_NS}/Robot/panda_hand"
+    # "{ENV_REGEX_NS}/Robot/panda_link0"
+
+    # https://github.com/NVIDIA-Omniverse/orbit/issues/99
+    # Hand Camera
+    # # -- camera cfg
+    # camera_cfg = PinholeCameraCfg(
+    #     sensor_tick=0,
+    #     height=480,
+    #     width=640,
+    #     data_types=["rgb", "distance_to_image_plane", "normals", "motion_vectors"],
+    #     usd_params=PinholeCameraCfg.UsdCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
+    #     ),
+    # )
+    # # -- camera Instance
+    # hand_camera = Camera(
+    #     cfg=camera_cfg,
+    #     device="cuda"
+    # )
+    # # -- Spawn camera
+    # hand_camera.spawn("/World/Robot_1/panda_hand/hand_camera", translation=(0.0, 0.0, 0.5))
 
 
 ##
@@ -294,7 +321,7 @@ class FrankaCubeLiftCameraEnvCfg(LiftEnvCfg):
                 ),
             ),
         )
-
+        
         # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)

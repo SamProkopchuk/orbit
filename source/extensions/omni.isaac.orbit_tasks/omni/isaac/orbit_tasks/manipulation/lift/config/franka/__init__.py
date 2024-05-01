@@ -38,7 +38,7 @@ gym.register(
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     kwargs={
         "env_cfg_entry_point": joint_pos_env_camera_cfg.FrankaCubeLiftCameraEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.LiftCubePPORunnerCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.LiftCubePPORunnerCfg, # TODO: change to visual agent?
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
     },
     disable_env_checker=True,
